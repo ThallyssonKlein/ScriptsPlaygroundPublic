@@ -5,7 +5,7 @@ df1 = pd.read_csv('./csv_1.csv')
 
 import chardet    
 
-rawdata = open('./jira.csv', 'rb').read()
+rawdata = open('./csv_1.csv', 'rb').read()
 result = chardet.detect(rawdata)
 encoding = result['encoding']
 df2 = pd.read_csv('./csv_2.csv', encoding=encoding)
