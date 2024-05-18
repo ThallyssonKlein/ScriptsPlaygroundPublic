@@ -1,0 +1,17 @@
+{
+  "name": "notion",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "find-tasks-sources-for-this-week": "node ./tasks/find-tasks-sources-for-this-week.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "dotenv": "^16.4.5"
+  }
+}
