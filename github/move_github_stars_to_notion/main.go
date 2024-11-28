@@ -7,7 +7,7 @@ import (
     "os"
 )
 
-const githubAPI = "https://api.github.com/users/%s/starred"
+const githubAPI = "https://api.github.com/users/%s/starred?page=%d&per_page=100"
 
 type Repository struct {
     Name        string `json:"name"`
@@ -23,27 +23,38 @@ func main() {
     }
 
     username := os.Args[1]
-    url := fmt.Sprintf(githubAPI, username)
+    page := 1
 
-    resp, err := http.Get(url)
-    if err != nil {
-        fmt.Printf("Error fetching data from GitHub: %v\n", err)
-        return
-    }
-    defer resp.Body.Close()
+    for {
+		fmt.Println("-------------------")
+        url := fmt.Sprintf(githubAPI, username, page)
+        resp, err := http.Get(url)
+        if err != nil {
+            fmt.Printf("Error fetching data from GitHub: %v\n", err)
+            return
+        }
+        defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        fmt.Printf("Error: received status code %d\n", resp.StatusCode)
-        return
-    }
+        if resp.StatusCode != http.StatusOK {
+            fmt.Printf("Error: received status code %d\n", resp.StatusCode)
+            return
+        }
 
-    var repos []Repository
-    if err := json.NewDecoder(resp.Body).Decode(&repos); err != nil {
-        fmt.Printf("Error decoding JSON response: %v\n", err)
-        return
-    }
+        var repos []Repository
+        if err := json.NewDecoder(resp.Body).Decode(&repos); err != nil {
+            fmt.Printf("Error decoding JSON response: %v\n", err)
+            return
+        }
 
-    for _, repo := range repos {
-        fmt.Printf("Name: %s\nFull Name: %s\nDescription: %s\nURL: %s\n\n", repo.Name, repo.FullName, repo.Description, repo.HTMLURL)
+        if len(repos) == 0 {
+            break
+        }
+
+        for _, repo := range repos {
+            fmt.Printf("Name: %s\nFull Name: %s\nDescription: %s\nURL: %s\n\n", repo.Name, repo.FullName, repo.Description, repo.HTMLURL)
+        }
+
+        page++
+		fmt.Println("-------------------")
     }
 }
