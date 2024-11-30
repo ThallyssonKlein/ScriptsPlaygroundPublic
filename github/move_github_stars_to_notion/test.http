@@ -1,0 +1,1 @@
+GET https://api.github.com/users/thallyssonklein/starred?page=100&per_page=100
