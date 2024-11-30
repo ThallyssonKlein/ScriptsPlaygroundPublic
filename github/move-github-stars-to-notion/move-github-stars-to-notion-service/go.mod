@@ -1,4 +1,4 @@
-module move_github_stars_to_notion
+module move-github-stars-to-notion
 
 go 1.23.3
 

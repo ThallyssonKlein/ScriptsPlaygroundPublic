@@ -71,7 +71,7 @@ func sendToRabbitMQ(queueName, message string) error {
 func main() {
     err2 := godotenv.Load()
 	if err2 != nil {
-		log.Fatalf("Erro ao carregar o arquivo .env: %v", err)
+		log.Fatalf("Erro ao carregar o arquivo .env: %v", err2)
 	}
 
     if len(os.Args) < 2 {

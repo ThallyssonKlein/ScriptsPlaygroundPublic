@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  rabbitmq-move-github-stars-to-notion:
+    image: rabbitmq:3-management
+    container_name: move-github-stars-to-notion-rabbitmq
+    ports:
+      - "5673:5672" # Porta para conexões AMQP
+      - "15673:15672" # Porta para o painel de administração
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+
+  # move-github-stars-to-notion-service:
+  #   build:
+  #     context: ./move-github-stars-to-notion-service
+  #     dockerfile: Dockerfile
+  #   container_name: move-github-stars-to-notion-service
+  #   depends_on:
+  #     - rabbitmq-move-github-stars-to-notion
