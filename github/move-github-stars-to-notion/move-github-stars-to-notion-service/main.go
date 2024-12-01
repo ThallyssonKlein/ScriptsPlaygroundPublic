@@ -13,9 +13,13 @@ import (
 	"runtime"
 	"sync"
 	"bytes"
+
+	"move-github-stars-to-notion/proxy"
+
+	"io/ioutil"
 )
 
-const githubAPI = "https://api.github.com/users/%s/starred?page=%d&per_page=100"
+const githubAPI = "http://localhost:8082/users/%s/starred?page=%d&per_page=100"
 
 type Repository struct {
     Name        string `json:"name"`
@@ -127,7 +131,7 @@ func consumeFromRabbitMQ(queueName string) {
 						"database_id": "14ebca5d3ca88010a1e1d72121cc76cf",
 					},
 					"properties": map[string]interface{}{
-						"Title": map[string]interface{}{
+						"Name": map[string]interface{}{
 							"title": []map[string]interface{}{
 								{
 									"text": map[string]interface{}{
@@ -148,7 +152,7 @@ func consumeFromRabbitMQ(queueName string) {
 				}
 			
 				// Cria a requisição HTTP.
-				req, err := http.NewRequest("POST", "http://localhost:8080/v1/pages", bytes.NewBuffer(jsonBody))
+				req, err := http.NewRequest("POST", "http://localhost:8083/v1/pages", bytes.NewBuffer(jsonBody))
 				if err != nil {
 					fmt.Println("Error creating HTTP request:", err)
 					return
@@ -168,15 +172,21 @@ func consumeFromRabbitMQ(queueName string) {
 					return
 				}
 				defer resp.Body.Close()
-			
+
 				// Verifica a resposta.
 				if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-					fmt.Printf("Failed to create page. Status code: %d\n", resp.StatusCode)
+					bodyBytes, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						fmt.Println("Error reading response body:", err)
+					} else {
+						bodyString := string(bodyBytes)
+						fmt.Printf("Failed to create page. Status code: %d. Response: %s\n", resp.StatusCode, bodyString)
+					}
 					msg.Nack(false, true)
-				}
-			
-				fmt.Println("Page successfully created!")	
-				msg.Ack(false)		
+				} else {
+					fmt.Println("Page successfully created!")
+					msg.Ack(false)
+				}			
 			}
 		}()
 	}
@@ -186,6 +196,9 @@ func consumeFromRabbitMQ(queueName string) {
 }
 
 func main() {
+    go proxy.StartProxy(":8082", "https://api.github.com")
+    go proxy.StartProxy(":8083", "https://api.notion.com")
+
     err2 := godotenv.Load()
 	if err2 != nil {
 		log.Fatalf("Erro ao carregar o arquivo .env: %v", err2)
@@ -235,4 +248,6 @@ func main() {
         page++
 		fmt.Println("-------------------")
     }
+
+	consumeFromRabbitMQ("repo_urls")
 }
