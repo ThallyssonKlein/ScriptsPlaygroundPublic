@@ -1,0 +1,1 @@
+0 0 1 * * /usr/bin/python3 /home/thallyssonklein/Desktop/Projects/ScriptsPlaygroundPublic/file_management/clean_trashmain.py
