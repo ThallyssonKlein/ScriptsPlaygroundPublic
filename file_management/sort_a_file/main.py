@@ -2,7 +2,12 @@ import os
 import random
 
 def escolher_arquivo_aleatorio(pasta):
-    arquivos = [f for f in os.listdir(pasta) if os.path.isfile(os.path.join(pasta, f))]
+    arquivos = []
+    
+    # Percorre todas as subpastas recursivamente
+    for root, dirs, files in os.walk(pasta):
+        for file in files:
+            arquivos.append(os.path.join(root, file))
     
     if not arquivos:
         print("A pasta não contém arquivos.")
