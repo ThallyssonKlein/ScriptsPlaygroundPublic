@@ -18,6 +18,8 @@ import (
 
 	"io/ioutil"
 	"io"
+	"path"
+    "net/url"
 )
 
 const githubAPI = "http://localhost:8082/users/%s/starred?page=%d&per_page=100"
@@ -27,6 +29,42 @@ type Repository struct {
     FullName    string `json:"full_name"`
     Description string `json:"description"`
     HTMLURL     string `json:"html_url"`
+}
+
+func unstar(repo string) {
+		// Defina os valores apropriados
+		token := os.Getenv("GITHUB_TOKEN")
+		owner := "thallyssonklein"          // Substitua pelo dono do repositório
+	
+		// URL da API para remover estrela de um repositório específico
+		url := fmt.Sprintf("https://api.github.com/user/starred/%s/%s", owner, repo)
+	
+		// Cria uma nova requisição DELETE
+		req, err := http.NewRequest("DELETE", url, nil)
+		if err != nil {
+			fmt.Printf("Erro ao criar a requisição: %v\n", err)
+			return
+		}
+	
+		// Define o cabeçalho de autenticação
+		req.Header.Set("Authorization", "token "+token)
+		req.Header.Set("Accept", "application/vnd.github.v3+json")
+	
+		// Cria um cliente HTTP para enviar a requisição
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			fmt.Printf("Erro ao fazer a requisição: %v\n", err)
+			return
+		}
+		defer resp.Body.Close()
+	
+		// Verifica a resposta
+		if resp.StatusCode == http.StatusNoContent {
+			fmt.Println("Estrela removida com sucesso!")
+		} else {
+			fmt.Printf("Falha ao remover estrela: %s\n", resp.Status)
+		}	
 }
 
 func sendToRabbitMQ(queueName, message string) error {
@@ -129,7 +167,7 @@ func consumeFromRabbitMQ(queueName string) {
 
 				requestBody := map[string]interface{}{
 					"parent": map[string]interface{}{
-						"database_id": "14ebca5d3ca88010a1e1d72121cc76cf",
+						"database_id": "150bca5d3ca880ca8bc8f9f0b129acc5",
 					},
 					"properties": map[string]interface{}{
 						"Name": map[string]interface{}{
@@ -186,6 +224,14 @@ func consumeFromRabbitMQ(queueName string) {
 					msg.Nack(false, true)
 				} else {
 					fmt.Println("Page successfully created!")
+					u, err := url.Parse(repoURL)
+					if err != nil {
+						fmt.Println("Error parsing URL:", err)
+						return
+					}				
+					repoName := path.Base(u.Path)
+					unstar(repoName)
+					fmt.Println("Unstarred repository!")
 					msg.Ack(false)
 				}			
 			}
