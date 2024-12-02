@@ -17,6 +17,7 @@ import (
 	"move-github-stars-to-notion/proxy"
 
 	"io/ioutil"
+	"io"
 )
 
 const githubAPI = "http://localhost:8082/users/%s/starred?page=%d&per_page=100"
@@ -200,9 +201,9 @@ func main() {
     go proxy.StartProxy(":8083", "https://api.notion.com")
 
     err2 := godotenv.Load()
-	if err2 != nil {
-		log.Fatalf("Erro ao carregar o arquivo .env: %v", err2)
-	}
+    if err2 != nil {
+        log.Fatalf("Erro ao carregar o arquivo .env: %v", err2)
+    }
 
     if len(os.Args) < 2 {
         fmt.Println("Usage: go run main.go <github-username>")
@@ -213,7 +214,7 @@ func main() {
     page := 1
 
     for {
-		fmt.Println("-------------------")
+        fmt.Println("-------------------")
         url := fmt.Sprintf(githubAPI, username, page)
         resp, err := http.Get(url)
         if err != nil {
@@ -227,8 +228,14 @@ func main() {
             return
         }
 
+        body, err := io.ReadAll(resp.Body)
+        if err != nil {
+            fmt.Printf("Error reading response body: %v\n", err)
+            return
+        }
+
         var repos []Repository
-        if err := json.NewDecoder(resp.Body).Decode(&repos); err != nil {
+        if err := json.Unmarshal(body, &repos); err != nil {
             fmt.Printf("Error decoding JSON response: %v\n", err)
             return
         }
@@ -240,14 +247,14 @@ func main() {
         for _, repo := range repos {
             fmt.Printf("Name: %s\nFull Name: %s\nDescription: %s\nURL: %s\n\n", repo.Name, repo.FullName, repo.Description, repo.HTMLURL)
             err := sendToRabbitMQ("repo_urls", repo.HTMLURL)
-			if err != nil {
-				log.Printf("Erro ao enviar mensagem ao RabbitMQ: %v", err)
-			}
+            if err != nil {
+                log.Printf("Erro ao enviar mensagem ao RabbitMQ: %v", err)
+            }
         }
 
         page++
-		fmt.Println("-------------------")
+        fmt.Println("-------------------")
     }
 
-	consumeFromRabbitMQ("repo_urls")
+    consumeFromRabbitMQ("repo_urls")
 }

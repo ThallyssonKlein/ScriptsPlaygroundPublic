@@ -1,12 +1,12 @@
 package proxy
 
 import (
-    "fmt"
     "io"
     "log"
     "net/http"
     "net/url"
     "time"
+    "bytes"
 )
 
 func StartProxy(port string, target string) {
@@ -28,11 +28,19 @@ func StartProxy(port string, target string) {
 
     mux := http.NewServeMux()
     mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        requests <- r
-        fmt.Printf("Recebido request: %s %s\n", r.Method, r.URL)
-
-        proxyReq, err := http.NewRequest(r.Method, proxyURL.ResolveReference(r.URL).String(), r.Body)
+        // Lê o corpo da requisição original
+        body, err := io.ReadAll(r.Body)
         if err != nil {
+            log.Printf("Erro ao ler o corpo da requisição: %v", err)
+            http.Error(w, "Erro ao ler o corpo da requisição", http.StatusInternalServerError)
+            return
+        }
+        r.Body.Close()
+
+        // Cria uma nova requisição com o corpo lido
+        proxyReq, err := http.NewRequest(r.Method, proxyURL.ResolveReference(r.URL).String(), io.NopCloser(bytes.NewReader(body)))
+        if err != nil {
+            log.Printf("Erro ao criar request: %v", err)
             http.Error(w, "Erro ao criar request", http.StatusInternalServerError)
             return
         }
@@ -42,6 +50,7 @@ func StartProxy(port string, target string) {
         client := &http.Client{}
         resp, err := client.Do(proxyReq)
         if err != nil {
+            log.Printf("Erro ao fazer request para o destino: %v", err)
             http.Error(w, "Erro ao fazer request para o destino", http.StatusInternalServerError)
             return
         }
@@ -61,7 +70,16 @@ func StartProxy(port string, target string) {
 }
 
 func processRequest(r *http.Request, proxyURL *url.URL) {
-    proxyReq, err := http.NewRequest(r.Method, proxyURL.ResolveReference(r.URL).String(), r.Body)
+    // Lê o corpo da requisição original
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        log.Printf("Erro ao ler o corpo da requisição: %v", err)
+        return
+    }
+    r.Body.Close()
+
+    // Cria uma nova requisição com o corpo lido
+    proxyReq, err := http.NewRequest(r.Method, proxyURL.ResolveReference(r.URL).String(), io.NopCloser(bytes.NewReader(body)))
     if err != nil {
         log.Printf("Erro ao criar request: %v", err)
         return
@@ -82,5 +100,5 @@ func processRequest(r *http.Request, proxyURL *url.URL) {
             r.Header.Add(key, value)
         }
     }
-    r.Body = resp.Body
+    r.Body = io.NopCloser(bytes.NewReader(body))
 }
