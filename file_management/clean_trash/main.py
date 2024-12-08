@@ -8,6 +8,8 @@ folder_path = '/home/thallyssonklein/.local/share/Trash/files'
 # Calcula a data limite (1 mês atrás)
 limit_date = datetime.now() - timedelta(days=30)
 
+print(limit_date)
+
 # Itera sobre todos os arquivos na pasta
 for filename in os.listdir(folder_path):
     file_path = os.path.join(folder_path, filename)
